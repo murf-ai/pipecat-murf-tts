@@ -1,16 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pipecat-murf-tts"
 version = "0.1.0"
-description = "Add your description here"
+description = "Official Murf TTS integration for Pipecat"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "pipecat-ai>=0.0.87",
+license = "MIT"
+authors = [
+    {name = "Nilesh Inkane", email = "nilesh.inkane@murf.ai"},
 ]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "loguru>=0.7.3",
+    "pipecat-ai>=0.0.87,<0.1.0",
+    "python-dotenv>=1.1.1",
+    "websockets>=15.0.1,<16.0",
+]
+
+[project.urls]
+Repository = "https://github.com/murf-ai/pipecat-murf-tts"
+Issues = "https://github.com/murf-ai/pipecat-murf-tts/issues"
 
 [dependency-groups]
 dev = [
     "mypy>=1.18.2",
+    "pipecat-ai[deepgram,local,openai,silero]>=0.0.87,<0.1.0",
     "pytest>=8.4.2",
     "ruff>=0.13.3",
 ]
