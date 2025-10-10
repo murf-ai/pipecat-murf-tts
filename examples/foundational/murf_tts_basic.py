@@ -12,7 +12,10 @@ from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.openai.llm import OpenAILLMService
-from pipecat.transports.local.audio import LocalAudioTransport, LocalAudioTransportParams
+from pipecat.transports.local.audio import (
+    LocalAudioTransport,
+    LocalAudioTransportParams,
+)
 
 from pipecat_murf_tts.tts import MurfTTSService
 
@@ -37,7 +40,6 @@ async def main():
         sys.exit(1)
 
     logger.info("All API keys loaded successfully")
-
 
     transport = LocalAudioTransport(
         LocalAudioTransportParams(
@@ -77,13 +79,13 @@ async def main():
 
     pipeline = Pipeline(
         [
-            transport.input(), 
+            transport.input(),
             stt,
-            context_aggregator.user(),  
-            llm,  
-            tts,  
-            transport.output(),  
-            context_aggregator.assistant(),  
+            context_aggregator.user(),
+            llm,
+            tts,
+            transport.output(),
+            context_aggregator.assistant(),
         ]
     )
 
@@ -95,7 +97,9 @@ async def main():
         ),
     )
 
-    messages.append({"role": "system", "content": "Please introduce yourself to the user."})
+    messages.append(
+        {"role": "system", "content": "Please introduce yourself to the user."}
+    )
     await task.queue_frames([context_aggregator.user().get_context_frame()])
 
     runner = PipelineRunner()
