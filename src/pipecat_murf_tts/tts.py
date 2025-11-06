@@ -4,7 +4,7 @@ import asyncio
 import base64
 import json
 import uuid
-from typing import AsyncGenerator, Dict, Optional, Mapping, Any
+from typing import AsyncGenerator, Dict, Optional, Mapping, Any, Literal, Union
 
 from loguru import logger
 from pydantic import BaseModel, field_validator
@@ -54,6 +54,8 @@ class MurfTTSService(AudioContextWordTTSService):
             variation: Higher values add more variation in Pause, Pitch, and Speed. Range: 0-5.
                       Only available for Gen2 model. Defaults to 1.
             multi_native_locale: Language for generated audio in Gen2 model (e.g., "en-US", "en-UK").
+            model: The model to use for audio output. Defaults to "FALCON".
+                      Currently supports "FALCON" and "GEN2".
             sample_rate: The sample rate for audio output. Valid values: 8000, 24000, 44100, 48000.
                         Defaults to 44100.
             channel_type: The channel type for audio output. Valid values: MONO, STEREO. Defaults to "MONO".
@@ -68,6 +70,7 @@ class MurfTTSService(AudioContextWordTTSService):
         pronunciation_dictionary: Optional[Dict[str, Dict[str, str]]] = None
         variation: Optional[int] = 1
         multi_native_locale: Optional[str] = None
+        model: Optional[Union[Literal["FALCON", "GEN2"], str]] = "FALCON"
         sample_rate: Optional[int] = 44100
         channel_type: Optional[str] = "MONO"
         format: Optional[str] = "PCM"
@@ -128,7 +131,7 @@ class MurfTTSService(AudioContextWordTTSService):
         self,
         *,
         api_key: str,
-        url: str = "wss://api.murf.ai/v1/speech/stream-input",
+        url: str = "wss://global.api.murf.ai/v1/speech/stream-input",
         params: Optional[InputParams] = None,
         aggregate_sentences: bool = True,
         **kwargs,
@@ -152,7 +155,6 @@ class MurfTTSService(AudioContextWordTTSService):
             aggregate_sentences=aggregate_sentences,
             push_text_frames=False,
             pause_frame_processing=True,
-            sample_rate=params.sample_rate,
             **kwargs,
         )
 
@@ -169,6 +171,7 @@ class MurfTTSService(AudioContextWordTTSService):
             "pronunciation_dictionary": params.pronunciation_dictionary or {},
             "variation": params.variation,
             "multi_native_locale": params.multi_native_locale,
+            "model": params.model,
             "sample_rate": params.sample_rate,
             "channel_type": params.channel_type,
             "format": params.format,
@@ -204,7 +207,7 @@ class MurfTTSService(AudioContextWordTTSService):
         """
         await super()._update_settings(settings)
 
-        url_params = {"sample_rate", "format", "channel_type"}
+        url_params = {"sample_rate", "format", "channel_type", "model"}
         needs_reconnect = any(key in url_params for key in settings.keys())
 
         if needs_reconnect:
@@ -234,6 +237,7 @@ class MurfTTSService(AudioContextWordTTSService):
             frame: The start frame containing initialization parameters.
         """
         await super().start(frame)
+        self._settings["sample_rate"] = self.sample_rate
         await self._connect()
 
     async def stop(self, frame: EndFrame) -> None:
@@ -282,6 +286,7 @@ class MurfTTSService(AudioContextWordTTSService):
                 f"?sample_rate={self._settings['sample_rate']}"
                 f"&format={self._settings['format']}"
                 f"&channel_type={self._settings['channel_type']}"
+                f"&model={self._settings['model']}"
             )
 
             headers = {"api-key": self._api_key}
@@ -293,7 +298,7 @@ class MurfTTSService(AudioContextWordTTSService):
         except Exception as e:
             logger.error(f"{self} initialization error: {e}")
             self._websocket = None
-            await self._call_event_handler("on_connection_error", f"{e}")
+            await self._report_error(ErrorFrame(f"{self} connection error: {e}"))
 
     async def _disconnect_websocket(self) -> None:
         """Disconnect from Murf websocket."""
@@ -334,37 +339,41 @@ class MurfTTSService(AudioContextWordTTSService):
 
         if self._context_id and self._websocket:
             try:
-                clear_context_msg = {"clear": True, "context_id": self._context_id}
-                await self._websocket.send(json.dumps(clear_context_msg))
+                if self.audio_context_available(self._context_id):
+                    await self.remove_audio_context(self._context_id)
+
+                clear_msg = {"clear": True, "context_id": self._context_id}
+                await self._websocket.send(json.dumps(clear_msg))
                 logger.debug(f"{self} cleared context {self._context_id}")
             except Exception as e:
-                logger.error(f"{self} error clearing context: {e}")
+                logger.error(f"{self} error cancelling context: {e}")
 
         self._context_id = None
+
+    async def _process_messages(self) -> None:
+        """Process messages from Murf WebSocket."""
+        async for message in self._get_websocket():
+            try:
+                if isinstance(message, str):
+                    data = json.loads(message)
+                    await self._process_json_message(data)
+                else:
+                    logger.warning(
+                        f"{self} received unexpected non-string message: {type(message)}"
+                    )
+            except Exception as e:
+                logger.error(f"{self} error processing message: {e}")
+                await self._report_error(
+                    ErrorFrame(f"{self} error processing message: {e}")
+                )
 
     async def _receive_messages(self) -> None:
         """Receive and process messages from Murf WebSocket."""
         while True:
-            try:
-                logger.debug(f"{self} receiving messages")
-                async for message in self._get_websocket():
-                    try:
-                        if isinstance(message, str):
-                            data = json.loads(message)
-                            await self._process_json_message(data)
-                        else:
-                            logger.warning(
-                                f"{self} received unexpected non-string message: {type(message)}"
-                            )
-                    except Exception as e:
-                        logger.error(f"{self} error processing message: {e}")
-
-                # Connection closed/timed out, reconnect
-                logger.debug(f"{self} websocket connection ended, reconnecting")
-                await self._connect_websocket()
-            except Exception as e:
-                logger.error(f"{self} error in receive loop: {e}")
-                break
+            await self._process_messages()
+            # Connection closed/timed out, reconnect
+            logger.debug(f"{self} websocket connection ended, reconnecting")
+            await self._connect_websocket()
 
     async def _process_json_message(self, data: Dict[str, Any]) -> None:
         """Process JSON messages from Murf.
@@ -383,9 +392,7 @@ class MurfTTSService(AudioContextWordTTSService):
             return
 
         if not self.audio_context_available(received_ctx_id):
-            logger.warning(
-                f"Ignoring message from unavailable context: {received_ctx_id}"
-            )
+            # Silently ignore messages from unavailable contexts (e.g., after interruption)
             return
 
         if "error" in data:
@@ -487,7 +494,9 @@ class MurfTTSService(AudioContextWordTTSService):
                 self._context_id = str(uuid.uuid4())
                 await self.create_audio_context(self._context_id)
 
-            # Generate text frame for assistant aggregator since Murf doesn't support word timestamps
+            # Generate text frame for assistant aggregator
+            # Note: Murf TTS uses AudioContextWordTTSService for audio context management
+            # but does not provide word-level timestamp alignment
             yield TTSTextFrame(text)
 
             voice_config_msg = self._build_voice_config_message(text, is_last=True)
@@ -501,6 +510,9 @@ class MurfTTSService(AudioContextWordTTSService):
                 logger.debug(f"{self} voice config message: {voice_config_msg}")
             except Exception as e:
                 logger.error(f"{self} error sending message: {e}")
+                await self._report_error(
+                    ErrorFrame(f"{self} error sending message: {e}")
+                )
                 yield TTSStoppedFrame()
                 await self.stop_all_metrics()
                 self._context_id = None
@@ -508,6 +520,7 @@ class MurfTTSService(AudioContextWordTTSService):
 
         except Exception as e:
             logger.error(f"{self} exception: {e}")
+            await self._report_error(ErrorFrame(f"{self} error: {e}"))
             yield TTSStoppedFrame()
             await self.stop_all_metrics()
 
