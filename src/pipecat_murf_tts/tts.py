@@ -85,7 +85,7 @@ class MurfTTSService(AudioContextWordTTSService):
         @field_validator("sample_rate")
         @classmethod
         def validate_sample_rate(cls, v: Optional[int]) -> Optional[int]:
-            valid_rates = [8000, 24000, 44100, 48000]
+            valid_rates = [8000, 16000, 24000, 44100, 48000]
             if v is not None and v not in valid_rates:
                 raise ValueError(f"sample_rate must be one of {valid_rates}, got {v}")
             return v
