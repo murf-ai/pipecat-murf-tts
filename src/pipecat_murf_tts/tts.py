@@ -56,7 +56,7 @@ class MurfTTSService(AudioContextWordTTSService):
             multi_native_locale: Language for generated audio in Gen2 model (e.g., "en-US", "en-UK").
             model: The model to use for audio output. Defaults to "FALCON".
                       Currently supports "FALCON" and "GEN2".
-            sample_rate: The sample rate for audio output. Valid values: 8000, 24000, 44100, 48000.
+            sample_rate: The sample rate for audio output. Valid values: 8000, 16000, 24000, 44100, 48000.
                         Defaults to 44100.
             channel_type: The channel type for audio output. Valid values: MONO, STEREO. Defaults to "MONO".
             format: The audio format for output. Valid values: MP3, WAV, FLAC, ALAW, ULAW, PCM, OGG.
