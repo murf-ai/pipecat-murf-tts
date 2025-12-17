@@ -12,7 +12,6 @@ from pydantic import BaseModel, field_validator
 from pipecat.frames.frames import (
     CancelFrame,
     EndFrame,
-    ErrorFrame,
     Frame,
     InterruptionFrame,
     StartFrame,
@@ -298,7 +297,9 @@ class MurfTTSService(AudioContextWordTTSService):
         except Exception as e:
             logger.error(f"{self} initialization error: {e}")
             self._websocket = None
-            await self._report_error(ErrorFrame(f"{self} connection error: {e}"))
+            await self.push_error(
+                error_msg=f"{self} connection error: {e}", exception=e
+            )
 
     async def _disconnect_websocket(self) -> None:
         """Disconnect from Murf websocket."""
@@ -363,8 +364,8 @@ class MurfTTSService(AudioContextWordTTSService):
                     )
             except Exception as e:
                 logger.error(f"{self} error processing message: {e}")
-                await self._report_error(
-                    ErrorFrame(f"{self} error processing message: {e}")
+                await self.push_error(
+                    error_msg=f"{self} error processing message: {e}", exception=e
                 )
 
     async def _receive_messages(self) -> None:
@@ -396,10 +397,11 @@ class MurfTTSService(AudioContextWordTTSService):
             return
 
         if "error" in data:
-            logger.error(f"{self} error: {data['error']}")
+            error_msg = f"{self} error: {data['error']}"
+            logger.error(error_msg)
             await self.push_frame(TTSStoppedFrame())
             await self.stop_all_metrics()
-            await self.push_error(ErrorFrame(f"{self} error: {data['error']}"))
+            await self.push_error(error_msg=error_msg)
             await self.remove_audio_context(received_ctx_id)
             self._context_id = None
             return
@@ -497,7 +499,8 @@ class MurfTTSService(AudioContextWordTTSService):
             # Generate text frame for assistant aggregator
             # Note: Murf TTS uses AudioContextWordTTSService for audio context management
             # but does not provide word-level timestamp alignment
-            yield TTSTextFrame(text)
+
+            yield TTSTextFrame(text, aggregated_by="sentence")
 
             voice_config_msg = self._build_voice_config_message(text, is_last=True)
 
@@ -510,8 +513,8 @@ class MurfTTSService(AudioContextWordTTSService):
                 logger.debug(f"{self} voice config message: {voice_config_msg}")
             except Exception as e:
                 logger.error(f"{self} error sending message: {e}")
-                await self._report_error(
-                    ErrorFrame(f"{self} error sending message: {e}")
+                await self.push_error(
+                    error_msg=f"{self} error sending message: {e}", exception=e
                 )
                 yield TTSStoppedFrame()
                 await self.stop_all_metrics()
@@ -520,7 +523,7 @@ class MurfTTSService(AudioContextWordTTSService):
 
         except Exception as e:
             logger.error(f"{self} exception: {e}")
-            await self._report_error(ErrorFrame(f"{self} error: {e}"))
+            await self.push_error(error_msg=f"{self} error: {e}", exception=e)
             yield TTSStoppedFrame()
             await self.stop_all_metrics()
 

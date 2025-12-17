@@ -54,7 +54,7 @@ async def main():
     tts = MurfTTSService(
         api_key=settings["murf_api_key"],
         params=MurfTTSService.InputParams(
-            voice_id="en-UK-ruby",
+            voice_id="Matthew",
             style="Conversational",
             rate=0,
             pitch=0,
