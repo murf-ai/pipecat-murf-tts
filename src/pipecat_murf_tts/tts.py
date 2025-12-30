@@ -331,6 +331,20 @@ class MurfTTSService(AudioContextWordTTSService):
             return self._websocket
         raise Exception("Websocket not connected")
 
+    async def flush_audio(self):
+        """Flush any pending audio and finalize the current turn."""
+        if not self._context_id or not self._websocket:
+            return
+
+        logger.debug(f"{self}: flushing audio and finalizing turn")
+        try:
+            end_msg = {"context_id": self._context_id, "end": True}
+            end_msg_json = json.dumps(end_msg)
+            await self._websocket.send(end_msg_json)
+            logger.debug(f"{self} marked turn complete for context {self._context_id}")
+        except Exception as e:
+            logger.error(f"{self} error flushing audio: {e}")
+
     async def _handle_interruption(
         self, frame: InterruptionFrame, direction: FrameDirection
     ) -> None:
@@ -340,11 +354,11 @@ class MurfTTSService(AudioContextWordTTSService):
 
         if self._context_id and self._websocket:
             try:
-                if self.audio_context_available(self._context_id):
-                    await self.remove_audio_context(self._context_id)
+                await self.remove_audio_context(self._context_id)
 
                 clear_msg = {"clear": True, "context_id": self._context_id}
-                await self._websocket.send(json.dumps(clear_msg))
+                clear_msg_json = json.dumps(clear_msg)
+                await self._websocket.send(clear_msg_json)
                 logger.debug(f"{self} cleared context {self._context_id}")
             except Exception as e:
                 logger.error(f"{self} error cancelling context: {e}")
@@ -499,18 +513,17 @@ class MurfTTSService(AudioContextWordTTSService):
             # Generate text frame for assistant aggregator
             # Note: Murf TTS uses AudioContextWordTTSService for audio context management
             # but does not provide word-level timestamp alignment
-
             yield TTSTextFrame(text, aggregated_by="sentence")
 
-            voice_config_msg = self._build_voice_config_message(text, is_last=True)
+            voice_config_msg = self._build_voice_config_message(text, is_last=False)
 
             try:
-                await self._get_websocket().send(json.dumps(voice_config_msg))
+                voice_config_json = json.dumps(voice_config_msg)
+                await self._get_websocket().send(voice_config_json)
                 await self.start_tts_usage_metrics(text)
                 logger.debug(
                     f"{self} sent voice config message for context {self._context_id}"
                 )
-                logger.debug(f"{self} voice config message: {voice_config_msg}")
             except Exception as e:
                 logger.error(f"{self} error sending message: {e}")
                 await self.push_error(
@@ -518,7 +531,9 @@ class MurfTTSService(AudioContextWordTTSService):
                 )
                 yield TTSStoppedFrame()
                 await self.stop_all_metrics()
-                self._context_id = None
+                if self._context_id:
+                    await self.remove_audio_context(self._context_id)
+                    self._context_id = None
                 return
 
         except Exception as e:
@@ -526,6 +541,9 @@ class MurfTTSService(AudioContextWordTTSService):
             await self.push_error(error_msg=f"{self} error: {e}", exception=e)
             yield TTSStoppedFrame()
             await self.stop_all_metrics()
+            if self._context_id:
+                await self.remove_audio_context(self._context_id)
+                self._context_id = None
 
 
 __all__ = ["MurfTTSService"]
