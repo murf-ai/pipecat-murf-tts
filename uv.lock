@@ -937,7 +937,7 @@ silero = [
 
 [[package]]
 name = "pipecat-murf-tts"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "loguru" },
