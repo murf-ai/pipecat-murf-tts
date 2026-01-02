@@ -41,9 +41,9 @@ Official [Murf AI](https://murf.ai/) Text-to-Speech integration for [Pipecat](ht
 
 ## Pipecat Compatibility
 
-**Tested with Pipecat v0.0.87**
+**Tested with Pipecat v0.0.97**
 
-This integration has been tested with Pipecat version 0.0.87. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
+This integration has been tested with Pipecat version 0.0.97. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
 
 ## Features
 
@@ -174,7 +174,7 @@ The `MurfTTSService.InputParams` class provides extensive configuration options:
 | `pitch` | `int` | `0` | `-50` to `50` | Pitch adjustment |
 | `variation` | `int` | `1` | `0` to `5` | Variation in pause, pitch, and speed (Gen2 only) |
 | `model` | `str` | `"FALCON"` | `"FALCON"`, `"GEN2"` | The model to use for audio output |
-| `sample_rate` | `int` | `44100` | `8000`, `24000`, `44100`, `48000` | Audio sample rate in Hz |
+| `sample_rate` | `int` | `44100` | `8000`, `16000`, `24000`, `44100`, `48000` | Audio sample rate in Hz |
 | `channel_type` | `str` | `"MONO"` | `"MONO"`, `"STEREO"` | Audio channel configuration |
 | `format` | `str` | `"PCM"` | `"MP3"`, `"WAV"`, `"FLAC"`, `"ALAW"`, `"ULAW"`, `"PCM"`, `"OGG"` | Audio output format |
 | `multi_native_locale` | `str` | `None` | Language codes (e.g., `"en-US"`) | Language for Gen2 model audio |
@@ -267,7 +267,7 @@ tts = MurfTTSService(
 ## Requirements
 
 - Python >= 3.10, < 3.13
-- pipecat-ai >= 0.0.87, < 0.1.0
+- pipecat-ai >= 0.0.97, < 0.1.0
 - websockets >= 15.0.1, < 16.0
 - loguru >= 0.7.3
 - python-dotenv >= 1.1.1
