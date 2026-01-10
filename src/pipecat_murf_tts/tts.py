@@ -259,6 +259,8 @@ class MurfTTSService(AudioContextWordTTSService):
 
     async def _connect(self):
         """Connect to Murf WebSocket and start receive task."""
+        super()._connect()
+        
         await self._connect_websocket()
 
         if self._websocket and not self._receive_task:
@@ -268,6 +270,8 @@ class MurfTTSService(AudioContextWordTTSService):
 
     async def _disconnect(self) -> None:
         """Disconnect from Murf WebSocket and clean up tasks."""
+        super()._disconnect()
+        
         if self._receive_task:
             await self.cancel_task(self._receive_task)
             self._receive_task = None
