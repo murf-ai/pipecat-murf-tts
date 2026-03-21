@@ -41,9 +41,9 @@ Official [Murf AI](https://murf.ai/) Text-to-Speech integration for [Pipecat](ht
 
 ## Pipecat Compatibility
 
-**Tested with Pipecat v0.0.97**
+**Tested with Pipecat v0.0.106**
 
-This integration has been tested with Pipecat version 0.0.97. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
+This integration has been tested with Pipecat version 0.0.106. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
 
 ## Features
 
@@ -93,7 +93,7 @@ async def main():
     tts = MurfTTSService(
         api_key="your-murf-api-key",
         params=MurfTTSService.InputParams(
-            voice_id="en-UK-ruby",
+            voice_id="Matthew",
             style="Conversational",
             rate=0,
             pitch=0,
@@ -119,7 +119,10 @@ from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineTask, PipelineParams
 from pipecat.services.openai.llm import OpenAILLMService
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import (
+    LLMContextAggregatorPair,
+)
 from pipecat_murf_tts import MurfTTSService
 
 load_dotenv()
@@ -129,7 +132,7 @@ async def main():
     tts = MurfTTSService(
         api_key=os.getenv("MURF_API_KEY"),
         params=MurfTTSService.InputParams(
-            voice_id="en-UK-ruby",
+            voice_id="Matthew",
             style="Conversational",
         ),
     )
@@ -141,11 +144,12 @@ async def main():
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
     ]
-    context = OpenAILLMContext(messages)
-    context_aggregator = llm.create_context_aggregator(context)
+    context = LLMContext(messages)
+    context_aggregator = LLMContextAggregatorPair(context)
 
     # Create pipeline
     pipeline = Pipeline([
+        context_aggregator.user(),
         llm,
         tts,
         context_aggregator.assistant(),
@@ -168,7 +172,7 @@ The `MurfTTSService.InputParams` class provides extensive configuration options:
 
 | Parameter | Type | Default | Range/Options | Description |
 |-----------|------|---------|---------------|-------------|
-| `voice_id` | `str` | `"en-UK-ruby"` | Any valid Murf voice ID | Voice identifier for TTS synthesis |
+| `voice_id` | `str` | `"Matthew"` | Any valid Murf voice ID | Voice identifier for TTS synthesis |
 | `style` | `str` | `"Conversational"` | Voice-specific styles | Voice style (e.g., "Conversational", "Narration") |
 | `rate` | `int` | `0` | `-50` to `50` | Speech rate adjustment |
 | `pitch` | `int` | `0` | `-50` to `50` | Pitch adjustment |
@@ -246,8 +250,8 @@ python examples/foundational/murf_tts_basic.py
 ### Dynamic Voice Changes
 
 ```python
-# Change voice on the fly
-tts.set_voice("en-US-natalie")
+# Change voice on the fly (async in pipecat >= 0.0.106)
+await tts.set_voice("en-US-natalie")
 ```
 
 ### Error Handling
@@ -257,7 +261,7 @@ The service includes built-in error handling and automatic reconnection:
 ```python
 tts = MurfTTSService(
     api_key="your-api-key",
-    params=MurfTTSService.InputParams(voice_id="en-UK-ruby"),
+    params=MurfTTSService.InputParams(voice_id="Matthew"),
 )
 
 # Automatic reconnection on connection loss
@@ -267,7 +271,7 @@ tts = MurfTTSService(
 ## Requirements
 
 - Python >= 3.10, < 3.13
-- pipecat-ai >= 0.0.97, < 0.1.0
+- pipecat-ai >= 0.0.106, <= 0.1.0
 - websockets >= 15.0.1, < 16.0
 - loguru >= 0.7.3
 - python-dotenv >= 1.1.1

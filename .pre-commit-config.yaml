@@ -12,7 +12,7 @@ repos:
       - id: mypy
         files: ^src/
         additional_dependencies:
-          - pipecat-ai>=0.0.87,<0.1.0
+          - pipecat-ai>=0.0.106,<=0.1.0
           - websockets>=15.0.1,<16.0
           - loguru>=0.7.3
           - python-dotenv>=1.1.1
