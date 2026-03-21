@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.frames.frames import LLMMessagesAppendFrame, LLMRunFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import (
+    LLMContextAggregatorPair,
+    LLMUserAggregatorParams,
+)
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.local.audio import (
@@ -45,7 +50,6 @@ async def main():
         LocalAudioTransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(),
         )
     )
 
@@ -74,8 +78,11 @@ async def main():
         },
     ]
 
-    context = OpenAILLMContext(messages)
-    context_aggregator = llm.create_context_aggregator(context)
+    context = LLMContext(messages)
+    context_aggregator = LLMContextAggregatorPair(
+        context,
+        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
+    )
 
     pipeline = Pipeline(
         [
@@ -97,10 +104,19 @@ async def main():
         ),
     )
 
-    messages.append(
-        {"role": "system", "content": "Please introduce yourself to the user."}
+    await task.queue_frames(
+        [
+            LLMMessagesAppendFrame(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Please introduce yourself to the user.",
+                    }
+                ]
+            ),
+            LLMRunFrame(),
+        ]
     )
-    await task.queue_frames([context_aggregator.user().get_context_frame()])
 
     runner = PipelineRunner()
     await runner.run(task)
