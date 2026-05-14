@@ -41,9 +41,9 @@ Official [Murf AI](https://murf.ai/) Text-to-Speech integration for [Pipecat](ht
 
 ## Pipecat Compatibility
 
-**Tested with Pipecat v0.0.106**
+**Tested with Pipecat v0.0.108**
 
-This integration has been tested with Pipecat version 0.0.106. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
+This integration has been tested with Pipecat version 0.0.108. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
 
 ## Features
 
@@ -250,7 +250,7 @@ python examples/foundational/murf_tts_basic.py
 ### Dynamic Voice Changes
 
 ```python
-# Change voice on the fly (async in pipecat >= 0.0.106)
+# Change voice on the fly
 await tts.set_voice("en-US-natalie")
 ```
 
@@ -270,8 +270,8 @@ tts = MurfTTSService(
 
 ## Requirements
 
-- Python >= 3.10, < 3.13
-- pipecat-ai >= 0.0.106, <= 0.1.0
+- Python >= 3.11
+- pipecat-ai >= 0.0.108, <= 0.1.0
 - websockets >= 15.0.1, < 16.0
 - loguru >= 0.7.3
 - python-dotenv >= 1.1.1
