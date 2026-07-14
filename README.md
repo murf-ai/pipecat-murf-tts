@@ -41,9 +41,9 @@ Official [Murf AI](https://murf.ai/) Text-to-Speech integration for [Pipecat](ht
 
 ## Pipecat Compatibility
 
-**Tested with Pipecat v0.0.108**
+**Tested with Pipecat v1.5.0**
 
-This integration has been tested with Pipecat version 0.0.108. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
+This integration has been tested with Pipecat version 1.5.0. It supports `pipecat-ai` versions from `0.0.108` up to (but not including) `2.0.0`. For compatibility with other versions, please refer to the [Pipecat changelog](https://github.com/pipecat-ai/pipecat/blob/main/CHANGELOG.md).
 
 ## Features
 
@@ -271,7 +271,7 @@ tts = MurfTTSService(
 ## Requirements
 
 - Python >= 3.11
-- pipecat-ai >= 0.0.108, <= 0.1.0
+- pipecat-ai >= 0.0.108, < 2.0.0
 - websockets >= 15.0.1, < 16.0
 - loguru >= 0.7.3
 - python-dotenv >= 1.1.1
