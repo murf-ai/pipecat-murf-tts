@@ -46,10 +46,19 @@ async def main():
 
     logger.info("All API keys loaded successfully")
 
+    # Audio output settings. The transport must match what we request from Murf
+    # to avoid channel mismatches or unnecessary resampling. MONO is recommended
+    # for voice agents.
+    SAMPLE_RATE = 48000
+    CHANNEL_TYPE = "STEREO"  # "MONO" recommended for production
+    num_channels = 2 if CHANNEL_TYPE == "STEREO" else 1
+
     transport = LocalAudioTransport(
         LocalAudioTransportParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
+            audio_out_sample_rate=SAMPLE_RATE,
+            audio_out_channels=num_channels,
         )
     )
 
@@ -63,8 +72,8 @@ async def main():
             rate=0,
             pitch=0,
             variation=1,
-            sample_rate=44100,
-            channel_type="MONO",
+            sample_rate=SAMPLE_RATE,
+            channel_type=CHANNEL_TYPE,
             format="PCM",
         ),
     )

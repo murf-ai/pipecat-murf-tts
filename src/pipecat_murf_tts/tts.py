@@ -50,10 +50,12 @@ class MurfTTSService(WebsocketTTSService):
             variation: Higher values add more variation in Pause, Pitch, and Speed. Range: 0-5.
                       Only available for Gen2 model. Defaults to 1.
             multi_native_locale: Language for generated audio in Gen2 model (e.g., "en-US", "en-UK").
-            model: The model to use for audio output. Defaults to "FALCON".
-                      Currently supports "FALCON" and "GEN2".
+            model: The model to use for audio output. Defaults to "falcon-2".
+                      Currently supports "falcon-2", "FALCON", and "GEN2".
             sample_rate: The sample rate for audio output. Valid values: 8000, 16000, 24000, 44100, 48000.
-                        Defaults to 44100.
+                        If set, takes priority over the service constructor's sample_rate. When left
+                        as None (and no constructor sample_rate is given), defaults to 24000
+                        (Falcon's native rate; lower latency for real-time agents).
             channel_type: The channel type for audio output. Valid values: MONO, STEREO. Defaults to "MONO".
             format: The audio format for output. Valid values: MP3, WAV, FLAC, ALAW, ULAW, PCM, OGG.
                    Defaults to "PCM".
@@ -66,8 +68,8 @@ class MurfTTSService(WebsocketTTSService):
         pronunciation_dictionary: Optional[Dict[str, Dict[str, str]]] = None
         variation: Optional[int] = 1
         multi_native_locale: Optional[str] = None
-        model: Optional[Union[Literal["FALCON", "GEN2"], str]] = "FALCON"
-        sample_rate: Optional[int] = 44100
+        model: Optional[Union[Literal["falcon-2", "FALCON", "GEN2"], str]] = "falcon-2"
+        sample_rate: Optional[int] = None
         channel_type: Optional[str] = "MONO"
         format: Optional[str] = "PCM"
 
@@ -146,6 +148,18 @@ class MurfTTSService(WebsocketTTSService):
         """
         params = params or MurfTTSService.InputParams()
 
+        # Sample rate precedence: InputParams.sample_rate > constructor sample_rate > 24000 default.
+        constructor_sample_rate = kwargs.pop("sample_rate", None)
+        resolved_sample_rate = (
+            params.sample_rate
+            if params.sample_rate is not None
+            else (
+                constructor_sample_rate
+                if constructor_sample_rate is not None
+                else 24000
+            )
+        )
+
         default_settings = TTSSettings(
             model=None,
             voice=params.voice_id or "Matthew",
@@ -153,6 +167,7 @@ class MurfTTSService(WebsocketTTSService):
         )
 
         super().__init__(
+            sample_rate=resolved_sample_rate,
             text_aggregation_mode=text_aggregation_mode,
             push_text_frames=True,
             push_start_frame=True,
@@ -174,7 +189,7 @@ class MurfTTSService(WebsocketTTSService):
             "variation": params.variation,
             "multi_native_locale": params.multi_native_locale,
             "model": params.model,
-            "sample_rate": params.sample_rate,
+            "sample_rate": resolved_sample_rate,
             "channel_type": params.channel_type,
             "format": params.format,
         }
@@ -422,10 +437,11 @@ class MurfTTSService(WebsocketTTSService):
             context_id: The audio context identifier.
             audio_data: Raw PCM audio data bytes.
         """
+        num_channels = 2 if self._murf_settings["channel_type"] == "STEREO" else 1
         frame = TTSAudioRawFrame(
             audio=audio_data,
             sample_rate=self.sample_rate,
-            num_channels=1,
+            num_channels=num_channels,
             context_id=context_id,
         )
         await self.append_to_audio_context(context_id, frame)

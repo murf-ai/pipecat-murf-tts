@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-07-16
+
+### Added
+- **`falcon-2` model** added to the typed `model` options for IntelliSense/autocompletion.
+
+### Changed
+- **Default model changed to `falcon-2`** (from `FALCON`). Other values (`FALCON`, `GEN2`, or any custom string) remain selectable via `InputParams.model`.
+- **Default sample rate lowered to 24000 Hz** (from 44100) — Falcon's native rate, which reduces latency for real-time agents.
+- **Sample rate precedence** clarified: `InputParams.sample_rate` (when set) takes priority over a `sample_rate` passed to the service constructor, which in turn takes priority over the 24000 Hz default. The resolved sample rate is now propagated to the base `WebsocketTTSService`.
+
+### Fixed
+- **STEREO output** now emits audio frames with `num_channels=2` (previously always `1`), so `channel_type="STEREO"` produces correct two-channel audio.
+
+### Changed (Example)
+- `murf_tts_basic.py` now derives the transport's `audio_out_channels` from `channel_type` and keeps the transport sample rate in sync with the value requested from Murf.
+
 ## [0.2.2] - 2026-07-14
 
 ### Changed

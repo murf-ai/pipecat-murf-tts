@@ -177,8 +177,8 @@ The `MurfTTSService.InputParams` class provides extensive configuration options:
 | `rate` | `int` | `0` | `-50` to `50` | Speech rate adjustment |
 | `pitch` | `int` | `0` | `-50` to `50` | Pitch adjustment |
 | `variation` | `int` | `1` | `0` to `5` | Variation in pause, pitch, and speed (Gen2 only) |
-| `model` | `str` | `"FALCON"` | `"FALCON"`, `"GEN2"` | The model to use for audio output |
-| `sample_rate` | `int` | `44100` | `8000`, `16000`, `24000`, `44100`, `48000` | Audio sample rate in Hz |
+| `model` | `str` | `"falcon-2"` | `"falcon-2"`, `"FALCON"`, `"GEN2"` | The model to use for audio output |
+| `sample_rate` | `int` | `24000` | `8000`, `16000`, `24000`, `44100`, `48000` | Audio sample rate in Hz. When set, takes priority over a `sample_rate` passed to the service constructor. Defaults to `24000` (Falcon's native rate; lower latency for real-time agents). |
 | `channel_type` | `str` | `"MONO"` | `"MONO"`, `"STEREO"` | Audio channel configuration |
 | `format` | `str` | `"PCM"` | `"MP3"`, `"WAV"`, `"FLAC"`, `"ALAW"`, `"ULAW"`, `"PCM"`, `"OGG"` | Audio output format |
 | `multi_native_locale` | `str` | `None` | Language codes (e.g., `"en-US"`) | Language for Gen2 model audio |
