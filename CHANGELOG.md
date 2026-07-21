@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.4] - 2026-07-21
 
 ### Added
 - **`min_buffer_size` and `max_buffer_delay_in_ms`** WebSocket advanced buffer settings via `InputParams`. Sent after connect as `setAdvancedSettings` and included on synthesis messages to tune TTFB vs prosody (defaults: `40` / `300`, matching the Murf API).
