@@ -75,6 +75,7 @@ async def main():
             sample_rate=SAMPLE_RATE,
             channel_type=CHANNEL_TYPE,
             format="PCM",
+            max_buffer_delay_in_ms=0,
         ),
     )
 

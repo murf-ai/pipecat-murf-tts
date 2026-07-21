@@ -59,6 +59,12 @@ class MurfTTSService(WebsocketTTSService):
             channel_type: The channel type for audio output. Valid values: MONO, STEREO. Defaults to "MONO".
             format: The audio format for output. Valid values: MP3, WAV, FLAC, ALAW, ULAW, PCM, OGG.
                    Defaults to "PCM".
+            min_buffer_size: Minimum characters to buffer before synthesis when no sentence
+                            boundary is detected. Larger values improve prosody; smaller values
+                            reduce TTFB. Range: 40 to 160. Defaults to 40.
+            max_buffer_delay_in_ms: Maximum time (ms) to wait before flushing buffered text when
+                                   min_buffer_size has not been reached. Range: 0 to 1000.
+                                   Defaults to 300.
         """
 
         voice_id: Optional[str] = "Matthew"
@@ -72,6 +78,8 @@ class MurfTTSService(WebsocketTTSService):
         sample_rate: Optional[int] = None
         channel_type: Optional[str] = "MONO"
         format: Optional[str] = "PCM"
+        min_buffer_size: Optional[int] = 40
+        max_buffer_delay_in_ms: Optional[int] = 300
 
         @field_validator("voice_id")
         @classmethod
@@ -123,6 +131,22 @@ class MurfTTSService(WebsocketTTSService):
             valid_formats = ["MP3", "WAV", "FLAC", "ALAW", "ULAW", "PCM", "OGG"]
             if v is not None and v not in valid_formats:
                 raise ValueError(f"format must be one of {valid_formats}, got {v}")
+            return v
+
+        @field_validator("min_buffer_size")
+        @classmethod
+        def validate_min_buffer_size(cls, v: Optional[int]) -> Optional[int]:
+            if v is not None and not (40 <= v <= 160):
+                raise ValueError(f"min_buffer_size must be between 40 and 160, got {v}")
+            return v
+
+        @field_validator("max_buffer_delay_in_ms")
+        @classmethod
+        def validate_max_buffer_delay_in_ms(cls, v: Optional[int]) -> Optional[int]:
+            if v is not None and not (0 <= v <= 1000):
+                raise ValueError(
+                    f"max_buffer_delay_in_ms must be between 0 and 1000, got {v}"
+                )
             return v
 
     def __init__(
@@ -192,6 +216,8 @@ class MurfTTSService(WebsocketTTSService):
             "sample_rate": resolved_sample_rate,
             "channel_type": params.channel_type,
             "format": params.format,
+            "min_buffer_size": params.min_buffer_size,
+            "max_buffer_delay_in_ms": params.max_buffer_delay_in_ms,
         }
 
         self._receive_task: Optional[asyncio.Task[None]] = None
@@ -287,6 +313,7 @@ class MurfTTSService(WebsocketTTSService):
 
             logger.debug("Connecting to Murf")
             self._websocket = await websocket_connect(url, additional_headers=headers)
+            await self._send_advanced_settings()
             logger.debug("Connected to Murf")
 
         except Exception as e:
@@ -295,6 +322,31 @@ class MurfTTSService(WebsocketTTSService):
             await self.push_error(
                 error_msg=f"{self} connection error: {e}", exception=e
             )
+
+    async def _send_advanced_settings(self) -> None:
+        """Send WebSocket advanced buffer settings after connect.
+
+        See https://murf.ai/api/docs/text-to-speech/web-sockets/advanced-settings
+        """
+        if not self._websocket:
+            return
+
+        advanced_settings: Dict[str, Any] = {}
+        if self._murf_settings.get("min_buffer_size") is not None:
+            advanced_settings["min_buffer_size"] = self._murf_settings["min_buffer_size"]
+        if self._murf_settings.get("max_buffer_delay_in_ms") is not None:
+            advanced_settings["max_buffer_delay_in_ms"] = self._murf_settings[
+                "max_buffer_delay_in_ms"
+            ]
+
+        if not advanced_settings:
+            return
+
+        try:
+            await self._websocket.send(json.dumps(advanced_settings))
+            logger.debug(f"{self} sent advanced settings: {advanced_settings}")
+        except Exception as e:
+            logger.error(f"{self} error sending advanced settings: {e}")
 
     async def _disconnect_websocket(self) -> None:
         """Disconnect from Murf websocket."""
@@ -476,6 +528,14 @@ class MurfTTSService(WebsocketTTSService):
             "text": text,
             "end": is_last,
         }
+
+        if self._murf_settings.get("min_buffer_size") is not None:
+            message["min_buffer_size"] = self._murf_settings["min_buffer_size"]
+        if self._murf_settings.get("max_buffer_delay_in_ms") is not None:
+            message["max_buffer_delay_in_ms"] = self._murf_settings[
+                "max_buffer_delay_in_ms"
+            ]
+
         logger.debug(f"{self} voice config message: {message}")
 
         return message
