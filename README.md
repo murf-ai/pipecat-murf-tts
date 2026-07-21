@@ -181,6 +181,8 @@ The `MurfTTSService.InputParams` class provides extensive configuration options:
 | `sample_rate` | `int` | `24000` | `8000`, `16000`, `24000`, `44100`, `48000` | Audio sample rate in Hz. When set, takes priority over a `sample_rate` passed to the service constructor. Defaults to `24000` (Falcon's native rate; lower latency for real-time agents). |
 | `channel_type` | `str` | `"MONO"` | `"MONO"`, `"STEREO"` | Audio channel configuration |
 | `format` | `str` | `"PCM"` | `"MP3"`, `"WAV"`, `"FLAC"`, `"ALAW"`, `"ULAW"`, `"PCM"`, `"OGG"` | Audio output format |
+| `min_buffer_size` | `int` | `40` | `40` to `160` | Minimum characters to buffer before synthesis when no sentence boundary is detected. Larger values improve prosody; smaller values reduce TTFB. |
+| `max_buffer_delay_in_ms` | `int` | `300` | `0` to `1000` | Maximum wait (ms) before flushing buffered text if `min_buffer_size` has not been reached. |
 | `multi_native_locale` | `str` | `None` | Language codes (e.g., `"en-US"`) | Language for Gen2 model audio |
 | `pronunciation_dictionary` | `dict` | `None` | Custom pronunciation mappings | Dictionary for custom word pronunciations |
 
@@ -200,6 +202,8 @@ tts = MurfTTSService(
         sample_rate=48000,  # Higher quality
         channel_type="STEREO",
         format="WAV",
+        min_buffer_size=60,  # More context before synthesis
+        max_buffer_delay_in_ms=500,  # Cap wait time for incomplete sentences
         multi_native_locale="en-US",
         pronunciation_dictionary={
             "Pipecat": {"pronunciation": "pipe-cat"},
