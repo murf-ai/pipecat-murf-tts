@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-07-28
+
+### Fixed
+- **Timely `TTSStoppedFrame` on synthesis completion.** The service now emits `TTSStoppedFrame` in playback order as soon as Murf sends the `final` message for a context, instead of relying on a downstream idle timeout. This makes `BotStoppedSpeakingFrame` land right at the end of speech, fixing up to a ~2s delay in the end-of-turn signal that could cause features gated on it (e.g. user-mute strategies) to drop user speech spoken shortly after the bot finished.
+
 ## [0.2.4] - 2026-07-21
 
 ### Added

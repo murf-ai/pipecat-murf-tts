@@ -1104,7 +1104,7 @@ local = [
 
 [[package]]
 name = "pipecat-murf-tts"
-version = "0.2.4"
+version = "0.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "loguru" },

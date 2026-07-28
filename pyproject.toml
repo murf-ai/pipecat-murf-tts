@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipecat-murf-tts"
-version = "0.2.4"
+version = "0.2.5"
 description = "Official Murf TTS integration for Pipecat"
 readme = "README.md"
 license = "MIT"

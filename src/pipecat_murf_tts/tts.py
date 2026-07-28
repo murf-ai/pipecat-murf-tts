@@ -333,7 +333,9 @@ class MurfTTSService(WebsocketTTSService):
 
         advanced_settings: Dict[str, Any] = {}
         if self._murf_settings.get("min_buffer_size") is not None:
-            advanced_settings["min_buffer_size"] = self._murf_settings["min_buffer_size"]
+            advanced_settings["min_buffer_size"] = self._murf_settings[
+                "min_buffer_size"
+            ]
         if self._murf_settings.get("max_buffer_delay_in_ms") is not None:
             advanced_settings["max_buffer_delay_in_ms"] = self._murf_settings[
                 "max_buffer_delay_in_ms"
@@ -475,6 +477,9 @@ class MurfTTSService(WebsocketTTSService):
         if data.get("final") is True:
             logger.debug(f"{self} received final output for context {received_ctx_id}")
             await self.stop_ttfb_metrics()
+            await self.append_to_audio_context(
+                received_ctx_id, TTSStoppedFrame(context_id=received_ctx_id)
+            )
             await self.remove_audio_context(received_ctx_id)
             return
 
